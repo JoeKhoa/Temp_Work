@@ -41,7 +41,7 @@ class ExportPlan(object):
         query = """
               
                 SELECT big_tab.*, sam.label as SAMPLING_LABEL
-                FROM ( select t1.sid as Plan_SID,
+                FROM ( select t1.plan_form_sid as Plan_FORM_SID,
                             max(case when t2.`label` = 'Họ và tên bé' then t2.value end) FULL_NAME,
                             max(case when t2.`label` = 'Email' then t2.value end) EMAIL,
                             max(case when t2.`label` = 'Địa chỉ' then t2.value end) ADDRESS,
@@ -52,22 +52,22 @@ class ExportPlan(object):
                             max(case when t2.`label` = 'Số điện thoại' then t2.value end) PHONE_NUMBER,
                             max(case when t2.`label` = 'Tên cha/mẹ' then t2.value end) PARENT_NAME
                             from (
-                                    SELECT p.sid 
+									SELECT pi.plan_form_sid
                                     FROM plan p
                                     INNER JOIN (
-                                    SELECT DISTINCT pi.plan_sid
-                                    FROM plan_input pi
+                                        SELECT DISTINCT pi.plan_sid, pi.plan_form_sid
+                                        FROM plan_input pi
                                     ) as pi
                                     ON p.sid = pi.plan_sid
                             ) t1
                         left join (
-                                        SELECT  p.sid, data_.*
+										SELECT  p.sid, data_.*
                                         FROM `plan` AS p
                                         RIGHT JOIN(
                                             SELECT it.label, data_row.*
                                             FROM `input_type` AS it
                                             INNER JOIN(
-                                                    SELECT pi.value, pit.input_type_id, pi.plan_sid
+                                                    SELECT pi.value, pit.input_type_id, pi.plan_sid, pi.plan_form_sid
                                                     FROM `plan_input` AS pi
                                                     INNER JOIN plan_input_type AS pit
                                                     ON pi.input_type_id = pit.id
@@ -78,14 +78,94 @@ class ExportPlan(object):
                                         ON p.sid = data_.plan_sid
                                         ORDER BY  data_.plan_sid,  data_.input_type_id
                                     ) t2
-                        on t1.sid = t2.plan_sid
-                        group by t1.sid
+                        on t1.plan_form_sid = t2.plan_form_sid
+                        group by t1.plan_form_sid
                 ) big_tab
                 INNER JOIN sampling sam
                 ON sam.sid = REPLACE(big_tab.SAMPLING,'-','')
 
         """
-                          
+
+# ********** tab_1:  plan_form_sid
+
+									# SELECT pi.plan_form_sid
+                                    # FROM plan p
+                                    # INNER JOIN (
+                                    #     SELECT DISTINCT pi.plan_sid, pi.plan_form_sid
+                                    #     FROM plan_input pi
+                                    # ) as pi
+                                    # ON p.sid = pi.plan_sid
+
+# ********** tab_2:  plan_form_sid
+
+
+										# SELECT  p.sid, data_.*
+                                        # FROM `plan` AS p
+                                        # RIGHT JOIN(
+                                        #     SELECT it.label, data_row.*
+                                        #     FROM `input_type` AS it
+                                        #     INNER JOIN(
+                                        #             SELECT pi.value, pit.input_type_id, pi.plan_sid, pi.plan_form_sid
+                                        #             FROM `plan_input` AS pi
+                                        #             INNER JOIN plan_input_type AS pit
+                                        #             ON pi.input_type_id = pit.id
+                                        #     ) as data_row
+                                        #     ON it.id = data_row.input_type_id
+                                        #     ORDER BY data_row.plan_sid, data_row.input_type_id
+                                        # ) AS data_
+                                        # ON p.sid = data_.plan_sid
+                                        # ORDER BY  data_.plan_sid,  data_.input_type_id
+
+
+# **********
+
+    #    SELECT big_tab.*, sam.label as SAMPLING_LABEL
+    #             FROM ( select t1.sid as Plan_SID,
+    #                         max(case when t2.`label` = 'Họ và tên bé' then t2.value end) FULL_NAME,
+    #                         max(case when t2.`label` = 'Email' then t2.value end) EMAIL,
+    #                         max(case when t2.`label` = 'Địa chỉ' then t2.value end) ADDRESS,
+    #                         max(case when t2.`label` = 'Ngày sinh' then t2.value end) BIRTHDAY,
+    #                         max(case when t2.`label` = 'Sampling' then t2.value end) SAMPLING,
+    #                         max(case when t2.`label` = 'Ngày sinh dự kiến' then t2.value end) BIRTHDAY_PREDICTION,
+    #                         max(case when t2.`label` = 'Số sổ' then t2.value end) MEDICAL_NUMBER,
+    #                         max(case when t2.`label` = 'Số điện thoại' then t2.value end) PHONE_NUMBER,
+    #                         max(case when t2.`label` = 'Tên cha/mẹ' then t2.value end) PARENT_NAME
+    #                         from (
+    #                                 SELECT p.sid 
+    #                                 FROM plan p
+    #                                 INNER JOIN (
+    #                                 SELECT DISTINCT pi.plan_sid
+    #                                 FROM plan_input pi
+    #                                 ) as pi
+    #                                 ON p.sid = pi.plan_sid
+    #                         ) t1
+    #                     left join (
+    #                                     SELECT  p.sid, data_.*
+    #                                     FROM `plan` AS p
+    #                                     RIGHT JOIN(
+    #                                         SELECT it.label, data_row.*
+    #                                         FROM `input_type` AS it
+    #                                         INNER JOIN(
+    #                                                 SELECT pi.value, pit.input_type_id, pi.plan_sid
+    #                                                 FROM `plan_input` AS pi
+    #                                                 INNER JOIN plan_input_type AS pit
+    #                                                 ON pi.input_type_id = pit.id
+    #                                         ) as data_row
+    #                                         ON it.id = data_row.input_type_id
+    #                                         ORDER BY data_row.plan_sid, data_row.input_type_id
+    #                                     ) AS data_
+    #                                     ON p.sid = data_.plan_sid
+    #                                     ORDER BY  data_.plan_sid,  data_.input_type_id
+    #                                 ) t2
+    #                     on t1.sid = t2.plan_sid
+    #                     group by t1.sid
+    #             ) big_tab
+    #             INNER JOIN sampling sam
+    #             ON sam.sid = REPLACE(big_tab.SAMPLING,'-','')
+
+
+
+
         if region_code:
             query = """
                 {query}
@@ -136,3 +216,4 @@ class ExportPlan(object):
                  row['SAMPLING'],)
             )
         return results
+
