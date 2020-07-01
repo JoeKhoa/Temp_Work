@@ -11,7 +11,9 @@ class ExportPlan(object):
     export_plan_headers = ['STT', 'Region', 'Store code', 'Store name',
                            'Plan code', 'Date start', 'Date end', 'Mer user', 'Mer name']
     export_plan_headers = ['STT', 'Tên Khách Hàng', 'Địa Chỉ', 'Số  Điện Thoại',
-                           'Ngày dự sinh/ ngày sinh', 'Mẫu 1']
+                           'Ngày dự sinh/ ngày sinh', 'Mẫu']
+                        #    'Ngày dự sinh/ ngày sinh', 'Mẫu', 'PLAN_sid', 'PLAN_sid', 'PG_sid']
+
     @classmethod
     def export_plan(cls, from_date, to_date, plan_status, region_code=None):
         # query = """
@@ -38,6 +40,18 @@ class ExportPlan(object):
         #     AND p.updated_at  < '{to_date}'
         #     AND p.status = '{plan_status}'
         # """.format(from_date=from_date, to_date=to_date, plan_status=plan_status)
+        
+        
+        # THIS QUERY 
+        """
+        
+        	- get plan by time, plan 
+        		+ Remove test user
+        	        	
+        	- make 'horizontal data colum-> single record ' * by plan_form_sid*
+        		+ remove plan_sid and pg_sid == NULL
+        		+ get lable from prouduct code
+	"""
         query = """
               
                 SELECT big_tab.*, sam.label as SAMPLING_LABEL
@@ -51,19 +65,29 @@ class ExportPlan(object):
                             max(case when t2.`label` = 'Số sổ' then t2.value end) MEDICAL_NUMBER,
                             max(case when t2.`label` = 'Số điện thoại' then t2.value end) PHONE_NUMBER,
                             max(case when t2.`label` = 'Tên cha/mẹ' then t2.value end) PARENT_NAME
+
                             from (
 									SELECT pi.plan_form_sid
                                     FROM plan p
                                     INNER JOIN (
                                         SELECT DISTINCT pi.plan_sid, pi.plan_form_sid
-                                        FROM plan_input pi
+                                        FROM plan_input as pi
+                                        INNER JOIN (
+                                            SELECT e.sid 
+                                            FROM `employee` as e 
+                                            WHERE NOT find_in_set(e.username, 'tien.hiep,pix.pg,pixaccount,pixaccount2,accounttest,acctestv2,acctestv3,acctestv4')
+                                        ) AS rm_test_acc
+                                        ON rm_test_acc.sid = pi.pg_sid
                                     ) as pi
                                     ON p.sid = pi.plan_sid
+                                    WHERE p.updated_at >= '{from_date}'
+                                    AND p.updated_at  < '{to_date}'
+                                    AND p.status = '{plan_status}'
                             ) t1
                         left join (
 										SELECT  p.sid, data_.*
                                         FROM `plan` AS p
-                                        RIGHT JOIN(
+                                        INNER JOIN(
                                             SELECT it.label, data_row.*
                                             FROM `input_type` AS it
                                             INNER JOIN(
@@ -71,6 +95,7 @@ class ExportPlan(object):
                                                     FROM `plan_input` AS pi
                                                     INNER JOIN plan_input_type AS pit
                                                     ON pi.input_type_id = pit.id
+                                                    WHERE pi.pg_sid IS NOT NULL AND pi.plan_sid IS NOT NULL
                                             ) as data_row
                                             ON it.id = data_row.input_type_id
                                             ORDER BY data_row.plan_sid, data_row.input_type_id
@@ -83,8 +108,7 @@ class ExportPlan(object):
                 ) big_tab
                 INNER JOIN sampling sam
                 ON sam.sid = REPLACE(big_tab.SAMPLING,'-','')
-
-        """
+        """.format(from_date=from_date, to_date=to_date, plan_status=plan_status)
 
 # ********** tab_1:  plan_form_sid
 
@@ -164,6 +188,10 @@ class ExportPlan(object):
     #             ON sam.sid = REPLACE(big_tab.SAMPLING,'-','')
 
 
+# SELECT e.username, e.sid 
+# from `employee` e 
+# WHERE NOT find_in_set(e.username, 'tien.hiep,pix.pg,pixaccount,pixaccount2,accounttest,acctestv2,acctestv3,acctestv4')
+
 
 
         if region_code:
@@ -180,10 +208,10 @@ class ExportPlan(object):
     @classmethod
     def write_data_to_file(cls, data, file_path):
         try:
-            # df = pd.DataFrame(cls._parse_data_for_export_data(data))
-            df = pd.DataFrame(data)
+            df = pd.DataFrame(cls._parse_data_for_export_data(data))
+            # df = pd.DataFrame(data) # use dynamic data + header
             writer = pd.ExcelWriter(file_path, engine='xlsxwriter')
-            # df.columns = cls.export_plan_headers      # Hard code header
+            df.columns = cls.export_plan_headers      # Hard code header
             df = df.astype(str)
             df.to_excel(writer, sheet_name=cls.export_plan_filename, startrow=5, startcol=0, index=False)
             writer.save()
@@ -209,11 +237,12 @@ class ExportPlan(object):
             # )
             results.append(
                 (idx + 1,
-                 row['FULL_NAME'],
-                 row['ADDRESS'],
-                 row['PHONE_NUMBER'],
-                 row['BIRTHDAY_PREDICTION'],                 
-                 row['SAMPLING'],)
+                row['PARENT_NAME'],
+                row['ADDRESS'],
+                row['PHONE_NUMBER'],
+                row['BIRTHDAY_PREDICTION'],                 
+                row['SAMPLING_LABEL'],
+                 )
             )
         return results
 
