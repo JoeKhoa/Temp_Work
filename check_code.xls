@@ -1,0 +1,41 @@
+x-special/nautilus-clipboard
+copy
+file:///home/khoa/Documents/WORK/GIT_Temp_Work/work_task_exp.xls
+
+
+**********************************************************************
+
+
+
+SELECT pi.value, pi.plan_form_sid  
+FROM plan_input pi
+WHERE pi.plan_form_sid  = 
+(SELECT pi.plan_form_sid  
+FROM `plan_input` pi 
+WHERE `value` LIKE '0988433440')
+WHERE find_in_set(pi.value, '0988433440')
+
+
+
+**********************************************************************
+
+SELECT  tab_full_lv_1.*, s.name
+FROM `store` AS s 
+INNER JOIN `plan_participaint` AS plp
+ON s.sid = plp.store_sid
+INNER JOIN `plan` p 
+ON p.sid = plp.plan_sid
+INNER JOIN `plan_form` AS plf
+ON p.sid = plf.plan_sid
+INNER JOIN (
+			SELECT pi.value, pi.plan_form_sid  
+            FROM plan_input pi
+            WHERE pi.plan_form_sid  = 
+                    (SELECT pi.plan_form_sid  
+                    FROM `plan_input` pi 
+                    WHERE `value` LIKE '0988433440'
+
+
+                    )
+) tab_full_lv_1
+ON tab_full_lv_1.plan_form_sid = plf.sid
