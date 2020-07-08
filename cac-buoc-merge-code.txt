@@ -1,0 +1,24 @@
+Step 1: tạo branch feature
+git checkout -b <new-branch> [<from-branch>]
+git checkout -b feature/implement_copy_image  develop
+# bla blaaaaaa
+# commit thay doi. KHONG PUSH LOCAL branch. tren git server se KO co branch nay.
+git push feature/implement_copy_image // tren git server se CO branch feature nay.
+
+step 2: để đảm bảo là code mới nhất.
+# switch qua branch develop. 
+git checkout develop
+git pull # lay code moi nhat ve
+
+step 3: merge code develop vao feature # ở bước 3 này hay bị conflict code. thì mình dễ xử ở branch LOCAL.
+# switch qua feature branch. 
+git checkout feature/implement_copy_image
+git merge develop # merge develop vao feature (vi dang o branch feature) 
+
+
+step 4:
+# switch qua branch develop
+git merge feature/implement_copy_image # merge feature vao develop (vi dang o branch develop)
+git push 
+
+DONE
