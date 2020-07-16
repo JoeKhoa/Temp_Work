@@ -75,7 +75,7 @@ class ExportPlan(object):
                     FROM plan_form AS  pf
                     INNER JOIN (
                         SELECT fos.form_sid
-                        FROM `form_sampling` fos"""+ query_employee +""""
+                        FROM `form_sampling` AS fos"""+ query_employee +"""
                     ) AS fos
                     ON fos.form_sid = pf.sid    
                 )AS plf
@@ -107,7 +107,7 @@ class ExportPlan(object):
                                                         ON rm_test_acc.sid = pi.pg_sid
                                                     ) as pi
                                                     ON p.sid = pi.plan_sid
-                                                    WHERE p.status = 'DONE'""" + query_date + """                                                              
+                                                    WHERE 1 """ + query_date + """                                                              
                                             ) t1
                                     left join (
                                                     SELECT  p.sid, data_.*
@@ -154,6 +154,11 @@ class ExportPlan(object):
             # df.columns = cls.export_plan_headers      # Hard code header
             df = df.astype(str)
             df.to_excel(writer, sheet_name=cls.export_plan_filename, startrow=5, startcol=0, index=False)
+            worksheet = writer.sheets[cls.export_plan_filename]
+            worksheet.write(1, 1, "REPORT BY CUSTOMER").set_bold()
+            import datetime
+            time_ = str(datetime.datetime.now()).split(".")[0]
+            worksheet.write(2, 1, time_)
             writer.save()
             writer.close()
         except Exception as ex:
@@ -194,7 +199,7 @@ class ExportPlan(object):
         return label_list
 
 
-class ExportCustomerReport(object):
+class ExportReportByDate(object):
 
     export_plan_filename = 'Export_Plan_DONE'
     export_plan_file_ext = '.xlsx'
